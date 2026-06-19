@@ -3,7 +3,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from 'telegram/sessions/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
