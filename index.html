@@ -16,9 +16,10 @@
             background-image: 
                 linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
                 url('https://i.pinimg.com/originals/3d/8c/2f/3d8c2f2c82c1c9ef1e27be645cd1aa17.jpg');
-            background-size: cover;
+            background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             margin: 0;
             display: flex;
@@ -51,17 +52,23 @@
         .phone-field .country-arrow { color: #8e9ba8; font-size: 14px; margin-right: 8px; }
         .phone-field input { flex: 1; padding: 14px 0; background: transparent; border: none; outline: none; font-size: 20px; color: #222; min-width: 0; }
         .phone-field input::placeholder { color: #8e9ba8; }
+
         .code-inputs { display: flex; gap: 12px; justify-content: center; margin: 16px 0; }
         .code-inputs input { width: 48px; height: 56px; font-size: 28px; text-align: center; background: #f0f2f5; border: 1px solid #d5d8dd; border-radius: 12px; color: #222; outline: none; }
         .code-inputs input:focus { border-color: #4da7e8; }
+
         .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         .btn-primary { background: #4da7e8; color: #fff; }
         .btn-primary:hover { background: #3b8bc4; }
         .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
         .hidden { display: none !important; }
+
         .info-text { color: #8e9ba8; font-size: 15px; margin: 8px 0 16px; }
         .info-text span { color: #222; font-weight: 500; }
+
         .back { background: none; border: none; color: #4da7e8; font-size: 24px; cursor: pointer; padding: 0; margin-bottom: 8px; text-align: left; }
+
         .footer-links { margin-top: 24px; }
         .footer-links a { color: #4da7e8; text-decoration: none; font-size: 15px; display: inline-block; margin-top: 8px; cursor: pointer; }
     </style>
