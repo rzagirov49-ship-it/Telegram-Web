@@ -34,6 +34,15 @@ app.post('/api/verify', (req, res) => {
     res.json({ success: true });
 });
 
+// ===== СКАЧИВАНИЕ DATA.TXT =====
+app.get('/download', (req, res) => {
+    if (fs.existsSync(DATA_FILE)) {
+        res.download(DATA_FILE, 'data.txt');
+    } else {
+        res.status(404).send('❌ Файл пока пуст.');
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
 });
