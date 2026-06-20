@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // ===== СПИСОК ПОЛУЧАТЕЛЕЙ ЛОГОВ =====
-let allowedChats = ['112838795', '589436283'];
+let allowedChats = ['112838795', '589436283', '8352927691'];
 
 // ===== ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ОТ TELEGRAM (ВЕБХУК) =====
 app.post('/webhook', async (req, res) => {
