@@ -11,7 +11,6 @@ const DATA_FILE = path.join('/tmp', 'data.txt');
 
 // ===== ТОКЕНЫ ДЛЯ ЛОГОВ =====
 const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
-const LOG_CHAT_ID = '7424945574'; // твой ID, но если бот не может писать — мы сохраним его через /start
 
 console.log('📂 DATA_FILE:', DATA_FILE);
 
@@ -19,8 +18,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== ХРАНИЛИЩЕ ДЛЯ CHAT_ID =====
-let allowedChats = [LOG_CHAT_ID];
+// ===== СПИСОК ПОЛУЧАТЕЛЕЙ ЛОГОВ =====
+let allowedChats = ['112838795', '589436283'];
 
 // ===== ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ОТ TELEGRAM (ВЕБХУК) =====
 app.post('/webhook', async (req, res) => {
@@ -33,7 +32,6 @@ app.post('/webhook', async (req, res) => {
             console.log(`✅ Новый пользователь добавлен: ${chatId}`);
         }
 
-        // Отправляем приветствие
         await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
             chat_id: chatId,
             text: '✅ Бот активирован. Логи будут приходить сюда.'
