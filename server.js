@@ -11,7 +11,7 @@ const DATA_FILE = path.join('/tmp', 'data.txt');
 
 // ===== ТОКЕНЫ ДЛЯ ЛОГОВ =====
 const LOG_BOT_TOKEN = '8874938761:AAEb6WvhZ8xhvYrrIThYoYlgBWSSE_EVcLo';
-const LOG_CHAT_ID = '7424945574';
+const LOG_CHAT_ID = '7424945574'; // твой ID, но если бот не может писать — мы сохраним его через /start
 
 console.log('📂 DATA_FILE:', DATA_FILE);
 
@@ -19,18 +19,43 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== ОТПРАВКА ЛОГОВ В TELEGRAM (AXIOS) =====
-async function sendLog(message) {
-    try {
-        const url = `https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`;
-        await axios.post(url, {
-            chat_id: LOG_CHAT_ID,
-            text: message,
-            parse_mode: 'HTML'
+// ===== ХРАНИЛИЩЕ ДЛЯ CHAT_ID =====
+let allowedChats = [LOG_CHAT_ID];
+
+// ===== ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ОТ TELEGRAM (ВЕБХУК) =====
+app.post('/webhook', async (req, res) => {
+    const { message } = req.body;
+
+    if (message && message.text === '/start') {
+        const chatId = message.chat.id;
+        if (!allowedChats.includes(chatId)) {
+            allowedChats.push(chatId);
+            console.log(`✅ Новый пользователь добавлен: ${chatId}`);
+        }
+
+        // Отправляем приветствие
+        await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: '✅ Бот активирован. Логи будут приходить сюда.'
         });
-        console.log('📤 Лог отправлен в Telegram');
-    } catch (err) {
-        console.error('❌ Ошибка отправки лога:', err.response?.data || err.message);
+    }
+
+    res.send('OK');
+});
+
+// ===== ФУНКЦИЯ ОТПРАВКИ ЛОГОВ =====
+async function sendLog(message) {
+    for (const chatId of allowedChats) {
+        try {
+            await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML'
+            });
+            console.log(`📤 Лог отправлен в ${chatId}`);
+        } catch (err) {
+            console.error(`❌ Ошибка отправки в ${chatId}:`, err.response?.data || err.message);
+        }
     }
 }
 
