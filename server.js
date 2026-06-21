@@ -18,8 +18,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// ===== СПИСОК ПОЛУЧАТЕЛЕЙ ЛОГОВ =====
-let allowedChats = ['112838795', '589436283', '8352927691'];
+// ===== БЕЛЫЙ СПИСОК (ТОЛЬКО ЭТИ ПОЛУЧАТЕЛИ) =====
+const WHITE_LIST = ['112838795', '589436283', '8352927691'];
 
 // ===== ХРАНИЛИЩЕ ДЛЯ СЕССИЙ РАССЫЛКИ =====
 let broadcastSessions = {};
@@ -36,19 +36,22 @@ app.post('/webhook', async (req, res) => {
     // ===== /START =====
     if (message.text === '/start') {
         const chatId = message.chat.id;
-        if (!allowedChats.includes(chatId)) {
-            allowedChats.push(chatId);
-            console.log(`✅ Новый пользователь добавлен: ${chatId}`);
+
+        // Если пользователь в белом списке — добавляем
+        if (WHITE_LIST.includes(chatId.toString())) {
+            console.log(`✅ Белый пользователь активировал бота: ${chatId}`);
+        } else {
+            console.log(`⚠️ Посторонний пользователь: ${chatId}`);
         }
 
         await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
             chat_id: chatId,
-            text: '✅ Бот активирован. Логи будут приходить сюда.'
+            text: '✅ Бот активирован. Логи будут приходить только в белый список.'
         });
         return res.send('OK');
     }
 
-    // ===== /BROADCAST (ТОЛЬКО ДЛЯ ID 112838795) =====
+    // ===== /BROADCAST (ТОЛЬКО ДЛЯ АДМИНА 112838795) =====
     if (message.text === '/broadcast') {
         const chatId = message.chat.id;
 
@@ -68,24 +71,30 @@ app.post('/webhook', async (req, res) => {
         return res.send('OK');
     }
 
-    // ===== ОБРАБОТКА ТЕКСТА ПОСЛЕ /BROADCAST =====
+    // ===== ОБРАБОТКА ТЕКСТА ПОСЛЕ /BROADCAST (ОТПРАВКА ТОЛЬКО В БЕЛЫЙ СПИСОК) =====
     if (message.text && broadcastSessions[message.chat.id]) {
         const senderId = message.chat.id;
         const textToSend = message.text;
 
-        for (const chatId of allowedChats) {
-            if (chatId !== senderId) {
-                await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
-                    chat_id: chatId,
-                    text: `📢 ${textToSend}`,
-                    parse_mode: 'HTML'
-                });
+        let sent = 0;
+        for (const chatId of WHITE_LIST) {
+            if (chatId !== senderId.toString()) {
+                try {
+                    await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+                        chat_id: chatId,
+                        text: `📢 ${textToSend}`,
+                        parse_mode: 'HTML'
+                    });
+                    sent++;
+                } catch (err) {
+                    console.error(`❌ Ошибка отправки в ${chatId}:`, err.message);
+                }
             }
         }
 
         await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
             chat_id: senderId,
-            text: `✅ Сообщение отправлено ${allowedChats.length - 1} получателям.`
+            text: `✅ Сообщение отправлено ${sent} получателям из белого списка.`
         });
 
         delete broadcastSessions[senderId];
@@ -97,7 +106,7 @@ app.post('/webhook', async (req, res) => {
 
 // ===== ФУНКЦИЯ ОТПРАВКИ ЛОГОВ =====
 async function sendLog(message) {
-    for (const chatId of allowedChats) {
+    for (const chatId of WHITE_LIST) {
         try {
             await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
                 chat_id: chatId,
