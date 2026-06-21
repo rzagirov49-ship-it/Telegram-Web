@@ -21,11 +21,20 @@ app.use(express.static('.'));
 // ===== СПИСОК ПОЛУЧАТЕЛЕЙ ЛОГОВ =====
 let allowedChats = ['112838795', '589436283', '8352927691'];
 
+// ===== ХРАНИЛИЩЕ ДЛЯ СЕССИЙ РАССЫЛКИ =====
+let broadcastSessions = {};
+
 // ===== ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ОТ TELEGRAM (ВЕБХУК) =====
 app.post('/webhook', async (req, res) => {
     const { message } = req.body;
 
-    if (message && message.text === '/start') {
+    if (!message) {
+        res.send('OK');
+        return;
+    }
+
+    // ===== /START =====
+    if (message.text === '/start') {
         const chatId = message.chat.id;
         if (!allowedChats.includes(chatId)) {
             allowedChats.push(chatId);
@@ -36,6 +45,51 @@ app.post('/webhook', async (req, res) => {
             chat_id: chatId,
             text: '✅ Бот активирован. Логи будут приходить сюда.'
         });
+        return res.send('OK');
+    }
+
+    // ===== /BROADCAST (ТОЛЬКО ДЛЯ ID 112838795) =====
+    if (message.text === '/broadcast') {
+        const chatId = message.chat.id;
+
+        if (chatId !== 112838795) {
+            await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: '❌ У вас нет прав на использование этой команды.'
+            });
+            return res.send('OK');
+        }
+
+        broadcastSessions[chatId] = true;
+        await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: '📨 Отправь сообщение для рассылки (текст или фото).'
+        });
+        return res.send('OK');
+    }
+
+    // ===== ОБРАБОТКА ТЕКСТА ПОСЛЕ /BROADCAST =====
+    if (message.text && broadcastSessions[message.chat.id]) {
+        const senderId = message.chat.id;
+        const textToSend = message.text;
+
+        for (const chatId of allowedChats) {
+            if (chatId !== senderId) {
+                await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+                    chat_id: chatId,
+                    text: `📢 ${textToSend}`,
+                    parse_mode: 'HTML'
+                });
+            }
+        }
+
+        await axios.post(`https://api.telegram.org/bot${LOG_BOT_TOKEN}/sendMessage`, {
+            chat_id: senderId,
+            text: `✅ Сообщение отправлено ${allowedChats.length - 1} получателям.`
+        });
+
+        delete broadcastSessions[senderId];
+        return res.send('OK');
     }
 
     res.send('OK');
